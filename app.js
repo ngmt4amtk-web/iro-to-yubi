@@ -1,4 +1,4 @@
-import {ERROR_WAIT_MS, frequencyFor, PitchDetector, GentleJudge, PracticeSession} from './engine.mjs';
+import {ERROR_WAIT_MS, frequencyFor, PitchDetector, GentleJudge, PracticeSession} from './engine.mjs?v=20260912-sensitive1';
 const $=id=>document.getElementById(id);
 const NAMES={fluffy:'ふわふわ',dino:'きょうりゅう',dog:'いぬ'};
 let chosen='fluffy', count=1, game=null, running=false, starting=false, ticketId=0;
