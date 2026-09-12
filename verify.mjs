@@ -53,3 +53,42 @@ test('1, 3 and 5 phrases finish at exactly 4, 12 and 20 sounds; pause clears an 
  const g=new PracticeSession(1);g.wrong(100);g.resumeNote();assert.equal(g.advance(50000),null);
  assert.throws(()=>new PracticeSession(2),RangeError);
 });
+
+test('quiet and moderately uncertain pitched sounds are accepted or prompt the reference',()=>{
+ for(const midi of [69,73]){
+  const j=new GentleJudge(),events=[];
+  for(let t=0;t<1600;t+=60){const e=j.observe({...reading(midi),confidence:.72,rms:.0025},69,t);if(e)events.push(e);}
+  assert.deepEqual(events,midi===69?['accepted']:['reference']);
+ }
+});
+test('the previously undecided range now produces a reference instead of waiting forever',()=>{
+ const j=new GentleJudge(),events=[];
+ for(let t=0;t<1600;t+=60){const e=j.observe(reading(70.25),69,t);if(e)events.push(e);}
+ assert.deepEqual(events,['reference']);
+});
+test('brief bow noise interruptions do not suppress the reference for a wrong sustained note',()=>{
+ const j=new GentleJudge(),events=[];
+ for(let t=0;t<1800;t+=60){
+  const r=(t/60)%4===0?{frequency:null,confidence:0,rms:.01}:{...reading(73),confidence:.75,rms:.003};
+  const e=j.observe(r,69,t);if(e)events.push(e);
+ }
+ assert.deepEqual(events,['reference']);
+});
+test('quiet harmonic signals with bow-like noise reach the correct and incorrect feedback paths',()=>{
+ let cases=0;
+ for(const sr of [44100,48000])for(const note of NOTES)for(const wrong of [false,true]){
+  const d=new PitchDetector(sr),j=new GentleJudge(),events=[];
+  let seed=20260912;
+  for(let t=0;t<1800;t+=60){
+   const midi=note.midi+(wrong?3:0)+.3*Math.sin(2*Math.PI*5*t/1000);
+   const input=signal(frequencyFor(midi),sr,[.5,1,.4,.1],.004);
+   for(let i=0;i<input.length;i++){
+    seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+    input[i]+=(seed/2**32-.5)*.006;
+   }
+   const e=j.observe(d.detect(input),note.midi,t);if(e)events.push(e);
+  }
+  assert.deepEqual(events,wrong?['reference']:['accepted'],`${sr}/${note.id}/${wrong}`);cases++;
+ }
+ assert.equal(cases,32);
+});

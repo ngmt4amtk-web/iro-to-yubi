@@ -1,5 +1,8 @@
 export const ERROR_WAIT_MS = 4000;
 export const SUCCESS_MS = 850;
+// 小さな演奏音も拾い、短いかすれで判定を最初からに戻さない。
+export const MIN_RMS = 0.002;
+export const MIN_CONFIDENCE = 0.65;
 export const NOTES = Object.freeze([
   {id:'a0',color:'red',string:'ラ',finger:0,name:'ラ',midi:69},
   {id:'a1',color:'red',string:'ラ',finger:1,name:'シ',midi:71},
@@ -33,7 +36,7 @@ export class PitchDetector {
     let power=0;
     for(let i=0;i<size;i++){x[i]-=mean;power+=x[i]*x[i];}
     const rms=Math.sqrt(power/size);
-    if(rms<0.007) return {frequency:null,confidence:0,rms};
+    if(rms<MIN_RMS) return {frequency:null,confidence:0,rms};
     const n=size-this.maxTau, d=this.diff;
     let total=0;
     d[0]=1;
@@ -42,14 +45,21 @@ export class PitchDetector {
       for(let i=0;i<n;i++){const delta=x[i]-x[i+tau];v+=delta*delta;}
       total+=v;d[tau]=total>0?v*tau/total:1;
     }
-    let tau=Math.max(2,Math.floor(this.rate/1500));
-    for(;tau<this.maxTau;tau++){
-      if(d[tau]<0.12){
-        while(tau+1<this.maxTau && d[tau+1]<d[tau]) tau++;
-        const denominator=2*(2*d[tau]-d[tau-1]-d[tau+1]);
-        const shift=denominator ? (d[tau+1]-d[tau-1])/denominator : 0;
-        return {frequency:this.rate/(tau+Math.max(-1,Math.min(1,shift))),confidence:1-d[tau],rms};
+    const minTau=Math.max(2,Math.floor(this.rate/1500));
+    let bestTau=-1;
+    for(let tau=minTau;tau<this.maxTau;tau++){
+      if(d[tau]<=d[tau-1] && d[tau]<d[tau+1]){
+        if(bestTau<0 || d[tau]<d[bestTau])bestTau=tau;
+        // 十分はっきりした周期は最初の谷で決め、余計な低音推定を避ける。
+        if(d[tau]<0.18){bestTau=tau;break;}
       }
+    }
+    // 弓のかすれが混じっても周期が残っていれば使う。音量だけでは音程を決めない。
+    if(bestTau>=0 && 1-d[bestTau]>=MIN_CONFIDENCE){
+      const tau=bestTau;
+      const denominator=2*(2*d[tau]-d[tau-1]-d[tau+1]);
+      const shift=denominator ? (d[tau+1]-d[tau-1])/denominator : 0;
+      return {frequency:this.rate/(tau+Math.max(-1,Math.min(1,shift))),confidence:1-d[tau],rms};
     }
     return {frequency:null,confidence:0,rms};
   }
@@ -61,17 +71,22 @@ export function pitchDistance(frequency, targetMidi) {
   return Math.abs(((cents+600)%1200+1200)%1200-600);
 }
 export class GentleJudge {
-  reset(start=0){this.start=start;this.last=null;this.good=0;this.wrong=0;this.accepted=false;this.prompted=false;}
+  reset(start=0){this.start=start;this.last=null;this.lastVoiced=null;this.good=0;this.wrong=0;this.accepted=false;this.prompted=false;}
   constructor(){this.reset();}
   observe(reading,targetMidi,now){
     if(this.accepted||now-this.start<200)return null;
     let dt=this.last===null?0:Math.max(0,Math.min(120,now-this.last));
     if(this.last!==null && now-this.last>180){this.good=0;this.wrong=0;dt=0;}
     this.last=now;
-    if(!reading.frequency || reading.confidence<0.9 || reading.rms<0.007){this.good=0;this.wrong=0;return null;}
+    if(!reading.frequency || reading.confidence<MIN_CONFIDENCE || reading.rms<MIN_RMS){
+      if(this.lastVoiced===null || now-this.lastVoiced>=180){this.good=0;this.wrong=0;}
+      return null;
+    }
+    if(this.lastVoiced!==null && now-this.lastVoiced>=180){this.good=0;this.wrong=0;dt=0;}
+    this.lastVoiced=now;
     const distance=pitchDistance(reading.frequency,targetMidi);
     if(distance<=100.01){this.good+=dt;this.wrong=0;if(this.good>=180){this.accepted=true;return 'accepted';}}
-    else if(distance>150){this.wrong+=dt;this.good=0;if(this.wrong>=600&&!this.prompted){this.prompted=true;return 'reference';}}
+    else if(distance>100.01){this.wrong+=dt;this.good=0;if(this.wrong>=480&&!this.prompted){this.prompted=true;return 'reference';}}
     else {this.good=0;this.wrong=0;}
     return null;
   }
