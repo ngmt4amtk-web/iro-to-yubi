@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#ffffff"><meta name="description" content="赤はラの弦、緑はミの弦。好きなキャラと4音ずつ弾く、バイオリン練習。"><title>いろとゆび</title><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./characters.css"><script type="module" src="./app.js"></script></head>
+<body><div id="confetti" aria-hidden="true"></div><main class="app">
+<header><h1>いろとゆび</h1><span class="instrument">バイオリン</span></header>
+<section id="setup" aria-labelledby="setupTitle">
+<h2 id="setupTitle">だれと ひこう？</h2>
+<div class="character-choices" role="group" aria-label="キャラをえらぶ">
+<button type="button" data-character="fluffy" class="character-choice" aria-pressed="true"><span class="choice-art"></span><span>ふわふわ</span></button>
+<button type="button" data-character="dino" class="character-choice" aria-pressed="false"><span class="choice-art"></span><span>きょうりゅう</span></button>
+<button type="button" data-character="dog" class="character-choice" aria-pressed="false"><span class="choice-art"></span><span>いぬ</span></button>
+</div>
+<h2 class="count-title">どのくらい ひく？</h2>
+<div class="phrase-choices" role="group" aria-label="フレーズ数">
+<button type="button" data-count="1" aria-pressed="true"><strong>1</strong><span>フレーズ</span><small>4音</small></button>
+<button type="button" data-count="3" aria-pressed="false"><strong>3</strong><span>フレーズ</span><small>12音</small></button>
+<button type="button" data-count="5" aria-pressed="false"><strong>5</strong><span>フレーズ</span><small>20音</small></button>
+</div>
+<p class="setup-guide"><span class="red-text">赤は ラのげん</span><span class="green-text">緑は ミのげん</span></p>
+<button id="begin" class="primary full">はじめる</button>
+<p id="setupStatus" role="status" aria-live="polite" class="notice">マイクの音は端末の中だけで処理し、録音・保存・送信はしません。</p>
+<details id="settings"><summary>先生の設定</summary><div class="setting-body">
+<label class="volume-label" for="volume">お手本の音量 <output id="volumeValue" for="volume">85%</output></label><input id="volume" type="range" min="20" max="100" step="5" value="85"><p class="small">端末の音量でも調整できます。</p>
+<div class="legend"><p class="red-text">赤 0・1・2・3<br><span>ラ・シ・ド♯・レ</span></p><p class="green-text">緑 0・1・2・3<br><span>ミ・ファ♯・ソ♯・ラ</span></p></div>
+<p>正解するとキャラが喜び、次の音へ進みます。違う音が続いたときだけお手本を鳴らし、間違いの判定から4秒後に次へ進みます。その間に弾き直してもOK。弾いていない間は待ちます。</p><p class="small">判定はとても緩めです。半音程度のずれやオクターブ違いも受け入れます。合っているときは音を足しません。</p></div></details>
+</section>
+<section id="practice" aria-label="バイオリン練習" hidden>
+<div class="phrase-heading"><p id="phraseCount">1 / 1 フレーズ</p><button id="home" class="text-button">えらびなおす</button></div>
+<div id="phraseStrip" class="phrase-strip" aria-label="このフレーズの4音"></div>
+<div id="card" class="card red">
+<div id="stringLabel" class="string-label">ラのげん</div>
+<div class="note-stage"><div class="note-content" id="noteContent" role="img" aria-label="赤、ラの弦、0、ラ"><div id="finger" class="finger" aria-hidden="true">0</div><div id="noteName" class="note-name" aria-hidden="true">ラ</div></div><div id="companion" class="companion" aria-hidden="true"></div></div>
+<div id="fingerHint" class="finger-hint">ゆびを おかない</div>
+</div>
+<div id="reaction" class="reaction" role="status" aria-live="polite">ひいてみよう</div>
+<div id="pace" class="pace" hidden><div id="progress" class="progress"></div></div>
+<div class="status-line"><span id="status" role="status" aria-live="polite">おとを きいているよ</span><span id="seconds" aria-hidden="true"></span></div>
+<div class="controls"><button id="pause" class="primary">やすむ</button><button id="next" class="secondary">つぎ</button></div>
+</section>
+<section id="finish" class="finish" aria-labelledby="finishTitle" hidden>
+<p class="finish-kicker">おめでとう！</p><h2 id="finishTitle" tabindex="-1">ぜんぶ おしまい！</h2>
+<div class="finale-stage"><div id="finaleCharacter" class="finale-character" aria-hidden="true"></div></div>
+<p id="finishDetail" class="finish-detail"></p><p class="finish-message">いっしょに ひけて うれしい！</p>
+<button id="again" class="primary full">もういっかい</button><button id="choose" class="secondary full">キャラを えらぶ</button>
+</section>
+<noscript><p>このアプリを使うにはJavaScriptを有効にしてください。</p></noscript>
+</main></body></html>

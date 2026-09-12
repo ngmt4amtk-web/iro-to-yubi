@@ -1,0 +1,29 @@
+.companion-dog { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
+.dog-portrait { width: 94%; aspect-ratio: 1; border-radius: 0; background-size: var(--sheet-width, 300%) 500%; background-position: var(--face-x, 0%) var(--stage-y, 0%); }
+[data-kind="fluffy"] .dog-portrait { background-image: url('./assets/fluffy-cutout-v1.png'); }
+[data-kind="dino"] .dog-portrait { background-image: url('./assets/dino-cutout-v1.png'); }
+[data-kind="dog"] .dog-portrait { background-image: url('./assets/dog-cutout-v1.png'); }
+.dog-portrait[data-mood="happy"] { --face-x: 50%; }
+.dog-portrait[data-mood="gloomy"] { --face-x: 100%; }
+.companion-dog[data-stage="2"] { --stage-y: 25%; }
+.companion-dog[data-stage="3"] { --stage-y: 50%; }
+.companion-dog[data-stage="4"] { --stage-y: 75%; }
+.companion-dog[data-stage="5"] { --stage-y: 100%; }
+.companion-dog[data-kind="fluffy"][data-stage="1"] .dog-portrait { background-size: var(--sheet-width, 300%) 499.6914%; --stage-y: 0.0000%; }
+.companion-dog[data-kind="fluffy"][data-stage="2"] .dog-portrait { background-size: var(--sheet-width, 300%) 515.6051%; --stage-y: 24.8276%; }
+.companion-dog[data-kind="fluffy"][data-stage="3"] .dog-portrait { background-size: var(--sheet-width, 300%) 520.5788%; --stage-y: 48.7768%; }
+.companion-dog[data-kind="fluffy"][data-stage="4"] .dog-portrait { background-size: var(--sheet-width, 300%) 550.6803%; --stage-y: 71.6226%; }
+.companion-dog[data-kind="fluffy"][data-stage="5"] .dog-portrait { background-size: var(--sheet-width, 300%) 430.5851%; --stage-y: 100.0000%; }
+.companion-dog[data-kind="dino"][data-stage="1"] .dog-portrait { background-size: var(--sheet-width, 300%) 513.9683%; --stage-y: 0.0000%; }
+.companion-dog[data-kind="dino"][data-stage="2"] .dog-portrait { background-size: var(--sheet-width, 300%) 534.3234%; --stage-y: 23.9362%; }
+.companion-dog[data-kind="dino"][data-stage="3"] .dog-portrait { background-size: var(--sheet-width, 300%) 523.9482%; --stage-y: 47.1756%; }
+.companion-dog[data-kind="dino"][data-stage="4"] .dog-portrait { background-size: var(--sheet-width, 300%) 517.2524%; --stage-y: 70.9801%; }
+.companion-dog[data-kind="dino"][data-stage="5"] .dog-portrait { background-size: var(--sheet-width, 300%) 427.1768%; --stage-y: 100.0000%; }
+.companion-dog[data-kind="dog"][data-stage="1"] .dog-portrait { background-size: var(--sheet-width, 300%) 505.9375%; --stage-y: 0.0000%; }
+.companion-dog[data-kind="dog"][data-stage="2"] .dog-portrait { background-size: var(--sheet-width, 300%) 505.9375%; --stage-y: 24.6343%; }
+.companion-dog[data-kind="dog"][data-stage="3"] .dog-portrait { background-size: var(--sheet-width, 300%) 515.6051%; --stage-y: 49.0421%; }
+.companion-dog[data-kind="dog"][data-stage="4"] .dog-portrait { background-size: var(--sheet-width, 300%) 537.8738%; --stage-y: 72.3824%; }
+.companion-dog[data-kind="dog"][data-stage="5"] .dog-portrait { background-size: var(--sheet-width, 300%) 444.7802%; --stage-y: 100.0000%; }
+[data-kind="dog"] .dog-portrait[data-mood="idle"] { --sheet-width: 277.4286%; --face-x: 0.0000%; }
+[data-kind="dog"] .dog-portrait[data-mood="happy"] { --sheet-width: 323.6667%; --face-x: 52.1610%; }
+[data-kind="dog"] .dog-portrait[data-mood="gloomy"] { --sheet-width: 302.4922%; --face-x: 100.0000%; }
