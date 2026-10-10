@@ -1,11 +1,22 @@
-import {ERROR_WAIT_MS, frequencyFor, PitchDetector, GentleJudge, PracticeSession} from './engine.mjs?v=20260912-sensitive1';
+import {ERROR_WAIT_MS, DEFAULT_MIC_PICKUP, MIC_PICKUP_LEVELS, frequencyFor, PitchDetector, GentleJudge, PracticeSession} from './engine.mjs?v=20261010-pickup1';
 const $=id=>document.getElementById(id);
 const NAMES={fluffy:'ふわふわ',dino:'きょうりゅう',dog:'いぬ'};
+const MIC_PICKUP_STORAGE_KEY='iro-to-yubi:mic-pickup';
+const micPickupLevels=Object.keys(MIC_PICKUP_LEVELS);
+function savedMicPickup(){
+ try{const saved=localStorage.getItem(MIC_PICKUP_STORAGE_KEY);return micPickupLevels.includes(saved)?saved:DEFAULT_MIC_PICKUP;}catch{return DEFAULT_MIC_PICKUP;}
+}
+let micPickup=savedMicPickup();
 let chosen='fluffy', count=1, game=null, running=false, starting=false, ticketId=0;
 let context,stream,source,analyser,silentGain,detector,frame=0,lastAnalysis=0,mutedUntil=0;
-let judge=new GentleJudge(), samples=new Float32Array(2048), voices=[];
-const ui={card:$('card'),finger:$('finger'),string:$('stringLabel'),hint:$('fingerHint'),name:$('noteName'),status:$('status'),seconds:$('seconds'),progress:$('progress'),pause:$('pause'),volume:$('volume'),reaction:$('reaction')};
+let judge=new GentleJudge(micPickup), samples=new Float32Array(2048), voices=[];
+const ui={card:$('card'),finger:$('finger'),string:$('stringLabel'),hint:$('fingerHint'),name:$('noteName'),status:$('status'),seconds:$('seconds'),progress:$('progress'),pause:$('pause'),volume:$('volume'),micPickup:$('micPickup'),reaction:$('reaction')};
 function text(el,value){if(el.textContent!==value)el.textContent=value;}
+function renderMicPickup(){
+ ui.micPickup.value=String(micPickupLevels.indexOf(micPickup));
+ const label=MIC_PICKUP_LEVELS[micPickup].label;
+ text($('micPickupValue'),label);ui.micPickup.setAttribute('aria-valuetext',label);
+}
 function screen(name){for(const id of ['setup','practice','finish'])$(id).hidden=id!==name;}
 function art(kind,stage=1,happy=false){return `<div class="companion-dog" data-kind="${kind}" data-stage="${stage}"><div class="dog-portrait" data-mood="${happy?'happy':'idle'}"></div></div>`;}
 function renderChoices(){document.querySelectorAll('[data-character]').forEach(button=>{button.querySelector('.choice-art').innerHTML=art(button.dataset.character);button.setAttribute('aria-pressed',String(button.dataset.character===chosen));});}
@@ -114,7 +125,7 @@ async function startAudio(fresh){
   if(context.state!=='running')throw new Error('audio-suspended');
   source=context.createMediaStreamSource(stream);analyser=context.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=0;
   silentGain=context.createGain();silentGain.gain.value=0;source.connect(analyser);analyser.connect(silentGain);silentGain.connect(context.destination);
-  detector=new PitchDetector(context.sampleRate);
+  detector=new PitchDetector(context.sampleRate,micPickup);
   stream.getAudioTracks().forEach(track=>{track.onended=()=>{if(running)pause('マイクが とまったよ');};});
   if(fresh)game=new PracticeSession(count);else game.resumeNote();
   starting=false;running=true;ui.pause.textContent='やすむ';$('begin').textContent='はじめる';screen('practice');renderNote();frame=requestAnimationFrame(tick);
@@ -126,13 +137,19 @@ async function startAudio(fresh){
  }
 }
 function toSetup(){stop();game=null;screen('setup');$('begin').textContent='はじめる';text($('setupStatus'),'マイクの音は端末の中だけで処理し、録音・保存・送信はしません。');$('confetti').replaceChildren();}
-renderChoices();
+renderMicPickup();renderChoices();
 document.querySelectorAll('[data-character]').forEach(button=>button.addEventListener('click',()=>{chosen=button.dataset.character;renderChoices();}));
 document.querySelectorAll('[data-count]').forEach(button=>button.addEventListener('click',()=>{count=Number(button.dataset.count);document.querySelectorAll('[data-count]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.count)===count)));}));
 $('begin').addEventListener('click',()=>startAudio(true));$('again').addEventListener('click',()=>{screen('setup');startAudio(true);});
 ui.pause.addEventListener('click',()=>{if(running||starting)pause();else startAudio(false);});$('next').addEventListener('click',()=>nextNote(true));
 $('home').addEventListener('click',toSetup);$('choose').addEventListener('click',toSetup);
 ui.volume.addEventListener('input',()=>{$('volumeValue').textContent=`${ui.volume.value}%`;});
+ui.micPickup.addEventListener('input',()=>{
+ micPickup=micPickupLevels[Number(ui.micPickup.value)]||DEFAULT_MIC_PICKUP;
+ renderMicPickup();judge=new GentleJudge(micPickup);
+ if(detector)detector=new PitchDetector(context.sampleRate,micPickup);
+ try{localStorage.setItem(MIC_PICKUP_STORAGE_KEY,micPickup);}catch{}
+});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&(running||starting)){if(game)pause();else{stop();$('begin').textContent='はじめる';text($('setupStatus'),'「はじめる」で再開できます。');}}});
 window.addEventListener('pagehide',stop);
 if(document.modelContext?.registerTool){

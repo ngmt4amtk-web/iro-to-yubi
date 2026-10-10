@@ -61,8 +61,8 @@ test('quiet and moderately uncertain pitched sounds are accepted or prompt the r
   assert.deepEqual(events,midi===69?['accepted']:['reference']);
  }
 });
-test('the previously undecided range now produces a reference instead of waiting forever',()=>{
- const j=new GentleJudge(),events=[];
+test('normal pickup preserves the reference for the previously undecided range',()=>{
+ const j=new GentleJudge('normal'),events=[];
  for(let t=0;t<1600;t+=60){const e=j.observe(reading(70.25),69,t);if(e)events.push(e);}
  assert.deepEqual(events,['reference']);
 });
