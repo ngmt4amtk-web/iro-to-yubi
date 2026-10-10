@@ -1,8 +1,17 @@
 export const ERROR_WAIT_MS = 4000;
 export const SUCCESS_MS = 850;
-// 小さな演奏音も拾い、短いかすれで判定を最初からに戻さない。
+// 「ふつう」は従来の値。お手本までの保持時間は全段階で維持する。
 export const MIN_RMS = 0.002;
 export const MIN_CONFIDENCE = 0.65;
+export const DEFAULT_MIC_PICKUP = 'ultra';
+export const MIC_PICKUP_LEVELS = Object.freeze({
+  normal:Object.freeze({label:'ふつう',minRms:MIN_RMS,minConfidence:MIN_CONFIDENCE,toleranceCents:100,acceptMs:180,referenceMs:480}),
+  high:Object.freeze({label:'高め',minRms:0.001,minConfidence:0.55,toleranceCents:125,acceptMs:120,referenceMs:480}),
+  ultra:Object.freeze({label:'超高め',minRms:0.0005,minConfidence:0.45,toleranceCents:150,acceptMs:60,referenceMs:480})
+});
+export function getMicPickupSettings(level=DEFAULT_MIC_PICKUP) {
+  return MIC_PICKUP_LEVELS[Object.prototype.hasOwnProperty.call(MIC_PICKUP_LEVELS,level)?level:DEFAULT_MIC_PICKUP];
+}
 export const NOTES = Object.freeze([
   {id:'a0',color:'red',string:'ラ',finger:0,name:'ラ',midi:69},
   {id:'a1',color:'red',string:'ラ',finger:1,name:'シ',midi:71},
@@ -22,7 +31,8 @@ export function shuffledNotes(previousId, random = Math.random) {
 }
 // YIN normalized difference. Work at half the input sample rate.
 export class PitchDetector {
-  constructor(sampleRate) {
+  constructor(sampleRate, micPickup=DEFAULT_MIC_PICKUP) {
+    this.settings=getMicPickupSettings(micPickup);
     this.rate=sampleRate/2;
     this.samples=new Float32Array(1024);
     this.maxTau=Math.min(510,Math.ceil(this.rate/150));
@@ -36,7 +46,7 @@ export class PitchDetector {
     let power=0;
     for(let i=0;i<size;i++){x[i]-=mean;power+=x[i]*x[i];}
     const rms=Math.sqrt(power/size);
-    if(rms<MIN_RMS) return {frequency:null,confidence:0,rms};
+    if(rms<this.settings.minRms) return {frequency:null,confidence:0,rms};
     const n=size-this.maxTau, d=this.diff;
     let total=0;
     d[0]=1;
@@ -55,7 +65,7 @@ export class PitchDetector {
       }
     }
     // 弓のかすれが混じっても周期が残っていれば使う。音量だけでは音程を決めない。
-    if(bestTau>=0 && 1-d[bestTau]>=MIN_CONFIDENCE){
+    if(bestTau>=0 && 1-d[bestTau]>=this.settings.minConfidence){
       const tau=bestTau;
       const denominator=2*(2*d[tau]-d[tau-1]-d[tau+1]);
       const shift=denominator ? (d[tau+1]-d[tau-1])/denominator : 0;
@@ -72,21 +82,21 @@ export function pitchDistance(frequency, targetMidi) {
 }
 export class GentleJudge {
   reset(start=0){this.start=start;this.last=null;this.lastVoiced=null;this.good=0;this.wrong=0;this.accepted=false;this.prompted=false;}
-  constructor(){this.reset();}
+  constructor(micPickup=DEFAULT_MIC_PICKUP){this.settings=getMicPickupSettings(micPickup);this.reset();}
   observe(reading,targetMidi,now){
     if(this.accepted||now-this.start<200)return null;
     let dt=this.last===null?0:Math.max(0,Math.min(120,now-this.last));
     if(this.last!==null && now-this.last>180){this.good=0;this.wrong=0;dt=0;}
     this.last=now;
-    if(!reading.frequency || reading.confidence<MIN_CONFIDENCE || reading.rms<MIN_RMS){
+    if(!reading.frequency || reading.confidence<this.settings.minConfidence || reading.rms<this.settings.minRms){
       if(this.lastVoiced===null || now-this.lastVoiced>=180){this.good=0;this.wrong=0;}
       return null;
     }
     if(this.lastVoiced!==null && now-this.lastVoiced>=180){this.good=0;this.wrong=0;dt=0;}
     this.lastVoiced=now;
     const distance=pitchDistance(reading.frequency,targetMidi);
-    if(distance<=100.01){this.good+=dt;this.wrong=0;if(this.good>=180){this.accepted=true;return 'accepted';}}
-    else if(distance>100.01){this.wrong+=dt;this.good=0;if(this.wrong>=480&&!this.prompted){this.prompted=true;return 'reference';}}
+    if(distance<=this.settings.toleranceCents+0.01){this.good+=dt;this.wrong=0;if(this.good>=this.settings.acceptMs){this.accepted=true;return 'accepted';}}
+    else if(distance>this.settings.toleranceCents+0.01){this.wrong+=dt;this.good=0;if(this.wrong>=this.settings.referenceMs&&!this.prompted){this.prompted=true;return 'reference';}}
     else {this.good=0;this.wrong=0;}
     return null;
   }
